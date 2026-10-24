@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>睡眠回收站 - Windows 98</title>
+<style>
+/* ============ 基础 ============ */
+:root{--face:#c0c0c0;--navy:#000080;--teal:#008080}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;font:12px Tahoma,"Microsoft YaHei",sans-serif;color:#000;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit}
+.hidden{display:none!important}
+svg{display:block}
+/* 凸起 / 凹陷 */
+.outset{border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf}
+.inset{border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040,inset -1px -1px #dfdfdf}
+/* ============ 桌面 ============ */
+#desktop{position:absolute;left:0;right:0;top:0;bottom:30px;background:var(--teal);overflow:hidden}
+.dicon{position:absolute;width:76px;padding:4px 0 2px;text-align:center;cursor:default}
+.dicon .img{width:32px;height:32px;margin:0 auto}
+.dicon .lbl{display:inline-block;margin-top:3px;padding:1px 3px;color:#fff;font-size:11px;line-height:1.25;max-width:76px;word-break:break-all}
+.dicon.sel .lbl{background:var(--navy)}
+.dicon .lbl input{width:72px;font:11px Tahoma,"Microsoft YaHei";border:1px dotted #404040;outline:none;padding:0 2px}
+/* ============ 窗口 ============ */
+#wins{position:absolute;left:0;right:0;top:0;bottom:30px;pointer-events:none}
+.win{position:absolute;pointer-events:auto;background:var(--face);padding:3px;display:flex;flex-direction:column;min-width:200px;min-height:100px;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf}
+.titlebar{height:18px;display:flex;align-items:center;padding:0 2px 0 3px;color:#fff;font-weight:bold;background:linear-gradient(90deg,#000080,#1084d0);flex:none}
+.win.inactive .titlebar{background:linear-gradient(90deg,#808080,#b5b5b5)}
+.ticon{width:16px;height:16px;margin-right:3px;display:flex;align-items:center}
+.ticon svg{width:14px;height:14px}
+.ttext{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px}
+.tbtns{display:flex}
+.tbtn{width:16px;height:14px;margin-left:2px;background:var(--face);border:1px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf;font:bold 9px/1 Tahoma;color:#000;display:flex;align-items:center;justify-content:center;cursor:default}
+.tbtn:active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080}
+.win-body{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+/* 窗口菜单栏 */
+.menubar{display:flex;flex:none;padding:1px 0}
+.mb-item{padding:2px 7px;cursor:default}
+.mb-item:hover,.mb-item.open{background:var(--navy);color:#fff}
+/* 状态栏 */
+.statusbar{display:flex;gap:2px;margin-top:2px;flex:none}
+.sb-cell{border:1px solid;border-color:#808080 #fff #fff #808080;padding:2px 6px;font-size:11px;flex:1;overflow:hidden;white-space:nowrap}
+.sb-cell.r{flex:none;min-width:60px}
+/* ============ 任务栏 ============ */
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:30px;background:var(--face);border-top:1px solid #fff;display:flex;align-items:center;padding:2px;z-index:5000}
+#startBtn{height:24px;padding:0 8px 0 4px;background:var(--face);border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf;font-weight:bold;display:flex;align-items:center;gap:4px;cursor:default}
+#startBtn.active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080}
+#startBtn svg{width:18px;height:18px}
+.tb-sep{width:2px;height:22px;margin:0 4px;border-left:1px solid #808080;border-right:1px solid #fff}
+#taskBtns{flex:1;display:flex;gap:3px;overflow:hidden;height:24px}
+.taskbtn{width:150px;flex:none;background:var(--face);border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf;text-align:left;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;cursor:default;font-size:11px}
+.taskbtn.active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080;background:#e8e8e8;font-weight:bold}
+.taskbtn svg{width:14px;height:14px;flex:none}
+#quickLaunch{display:flex;gap:2px;align-items:center;padding:0 2px}
+.ql-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:default}
+.ql-btn:hover{border:1px solid;border-color:#fff #404040 #404040 #fff}
+.ql-btn:active{border:1px solid;border-color:#404040 #fff #fff #404040}
+.ql-btn svg{width:16px;height:16px}
+.ie-bar{display:flex;align-items:center;gap:6px;padding:2px 4px;flex:none;font-size:11px}
+.ie-addr{flex:1;background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;padding:2px 6px}
+.ie-page{flex:1;background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040;margin-top:2px;padding:24px;font-size:12px;line-height:2}
+#tray{flex:none;border:1px solid;border-color:#808080 #fff #fff #808080;padding:2px 10px;margin-left:4px;font-size:11px;display:flex;align-items:center;gap:6px}
+/* ============ 右键菜单 / 开始菜单 ============ */
+.ctx{position:fixed;min-width:170px;background:var(--face);padding:2px;z-index:9000;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf}
+.ctx .it{position:relative;padding:3px 22px 3px 22px;white-space:nowrap;cursor:default}
+.ctx .it .tick{position:absolute;left:6px}
+.ctx .it .arrow{position:absolute;right:6px;font-size:10px}
+.ctx .it:hover:not(.dis){background:var(--navy);color:#fff}
+.ctx .it.dis{color:#808080}
+.ctx .it.bold{font-weight:bold}
+.ctx .sep{height:0;border-top:1px solid #808080;border-bottom:1px solid #fff;margin:2px}
+.ctx .sub{display:none;position:absolute;left:100%;top:-4px;z-index:9001}
+.ctx .sub.flip{left:auto;right:100%}
+.ctx .it:hover>.sub{display:block}
+/* 开始菜单 */
+#startmenu{display:flex;padding:2px;min-width:0}
+.sm-banner{width:26px;background:linear-gradient(180deg,#1084d0,#000080);color:#fff;display:flex;align-items:flex-end;justify-content:center;padding:6px 0;margin-right:2px}
+.sm-banner span{writing-mode:vertical-rl;transform:rotate(180deg);font:bold 16px Tahoma;letter-spacing:1px}
+.sm-banner sup{font-size:9px}
+/* ============ 记事本 ============ */
+.np-area{flex:1;background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040;outline:none;resize:none;padding:3px 5px;font:13px/1.5 "Lucida Console",Consolas,"Microsoft YaHei",monospace;-webkit-user-select:text;user-select:text;white-space:pre-wrap}
+/* ============ 回收站窗口 ============ */
+.bin-body{flex:1;background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040;overflow:auto;display:flex;flex-wrap:wrap;align-content:flex-start;padding:10px;gap:12px}
+.bicon{width:72px;text-align:center;cursor:default}
+.bicon .img{width:32px;height:32px;margin:0 auto}
+.bicon .lbl{display:inline-block;margin-top:2px;font-size:11px;max-width:72px;word-break:break-all;padding:0 2px}
+.bicon.sel .lbl{background:var(--navy);color:#fff}
+.bin-empty{margin:auto;color:#808080;font-size:12px;text-align:center}
+.mc-body{flex:1;background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404080,inset 1px 1px #404040;display:flex;flex-wrap:wrap;align-content:flex-start;padding:14px;gap:14px}
+/* ============ 对话框 ============ */
+.dlg-body{padding:14px 14px 10px;display:flex;gap:12px;align-items:flex-start;font-size:12px;line-height:1.6;white-space:pre-wrap}
+.dlg-body .dicon-svg{width:32px;height:32px;flex:none}
+.dlg-btns{display:flex;justify-content:center;gap:8px;padding:6px 0 10px}
+.btn{min-width:76px;height:23px;background:var(--face);border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf;padding:0 12px;cursor:default}
+.btn:active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080}
+.btn.default{outline:1px solid #000}
+.dlg-input{margin:0 14px 8px;width:calc(100% - 28px);border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040;padding:3px 5px;font:12px Tahoma,"Microsoft YaHei";outline:none}
+/* ============ 扫雷 ============ */
+.mz-wrap{padding:8px;display:inline-block}
+.mz-top{display:flex;justify-content:space-between;align-items:center;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040;padding:4px 6px;margin-bottom:8px}
+.lcd{font:bold 24px/1 Consolas,"Courier New",monospace;color:#f00;background:#000;padding:2px 4px;letter-spacing:2px;min-width:56px;text-align:center}
+.face{width:38px;height:38px;background:var(--face);border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf;display:flex;align-items:center;justify-content:center;cursor:default}
+.face:active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080}
+.face svg{width:28px;height:28px}
+.mz-grid{display:grid;border:2px solid;border-color:#808080 #fff #fff #808080;box-shadow:inset 1px 1px #404040}
+.cell{width:20px;height:20px;background:var(--face);border:2px solid;border-color:#fff #808080 #808080 #fff;font:bold 13px/16px Tahoma;text-align:center;cursor:default;padding:0}
+.cell.open{border:1px solid #808080;background:#c6c6c6}
+.cell.boom{background:#f00}
+.cell svg{width:14px;height:14px;margin:1px auto}
+.n1{color:#0000ff}.n2{color:#008000}.n3{color:#ff0000}.n4{color:#000080}.n5{color:#800000}.n6{color:#008080}.n7{color:#000}.n8{color:#808080}
+/* ============ 开机 / 关机 ============ */
+#boot{position:fixed;inset:0;background:#000;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+#boot .b1{color:#fff;font:bold 42px Tahoma}
+#boot .b1 i{font-style:normal;color:#f80}
+#boot .b2{color:#888;font:13px Consolas;margin-top:18px}
+#shutdown{position:fixed;inset:0;background:#000;z-index:99998;display:flex;align-items:center;justify-content:center;cursor:default}
+#shutdown .s{color:#ff8000;font:18px/2.2 Consolas,"Microsoft YaHei",monospace;text-align:center;white-space:pre}
+/* 属性窗口 */
+.props{padding:14px;font-size:12px;line-height:2;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="b1">Windows <i>98</i></div>
+  <div class="b2">睡眠回收站 正在启动 …</div>
+</div>
+
+<div id="desktop"></div>
+<div id="wins"></div>
+
+<div id="taskbar">
+  <div id="startBtn"><svg viewBox="0 0 16 16"><path d="M1 3l6-1v6H1z" fill="#e94b3c"/><path d="M9 1.5 15 1v7H9z" fill="#7ab648"/><path d="M1 10h6v5l-6-.9z" fill="#3a7bd5"/><path d="M9 10h6v6l-6-.8z" fill="#f7c948"/></svg>开始</div>
+  <div class="tb-sep"></div>
+  <div id="quickLaunch"><span class="ql-btn" id="qlIE" title="启动 Internet Explorer"><svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="12" fill="#4aa3ff" stroke="#1c4e9c"/><rect x="5" y="14" width="22" height="4" fill="#fff"/><ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="#ffd867" stroke-width="2" transform="rotate(-25 16 16)"/></svg></span><span class="ql-btn" id="qlDesk" title="显示桌面"><svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="4" y="6" width="24" height="16" fill="#d4d0c8" stroke="#404040"/><rect x="7" y="9" width="18" height="10" fill="#008080"/><rect x="12" y="23" width="8" height="2" fill="#d4d0c8" stroke="#404040"/><rect x="8" y="25" width="16" height="2" fill="#d4d0c8" stroke="#404040"/><path d="M24 3l4 4-8 8-4-4z" fill="#ffd867" stroke="#404040"/></svg></span></div>
+  <div class="tb-sep"></div>
+  <div id="taskBtns"></div>
+  <div id="tray"><span id="clock">--:--</span></div>
+</div>
+
+<div id="shutdown" class="hidden"><div class="s">您现在可以安全地关闭计算机了。
+
+也可以，安心入睡了。
+
+— 点击任意处唤醒 —</div></div>
+
+<script>
+'use strict';
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let _uid=1; const uid=()=>Date.now().toString(36)+(_uid++).toString(36);
+
+/* ================= 图标（像素风 SVG） ================= */
+const ICO={
+pc:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="4" width="26" height="19" fill="#d4d0c8" stroke="#404040"/><rect x="6" y="7" width="20" height="12" fill="#008080"/><rect x="12" y="24" width="8" height="2" fill="#d4d0c8" stroke="#404040"/><rect x="8" y="26" width="16" height="3" fill="#d4d0c8" stroke="#404040"/><rect x="25" y="20" width="2" height="1" fill="#2f6"/></svg>',
+bin:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="12" y="2" width="8" height="2" fill="#c0c0c0" stroke="#404040"/><path d="M5 5h22v3H5z" fill="#c0c0c0" stroke="#404040"/><path d="M7 8h18l-2 21H9z" fill="#d4d0c8" stroke="#404040"/><g stroke="#808080"><line x1="12" y1="11" x2="13" y2="26"/><line x1="16" y1="11" x2="16" y2="26"/><line x1="20" y1="11" x2="19" y2="26"/></g></svg>',
+binFull:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="12" y="1" width="8" height="2" fill="#c0c0c0" stroke="#404040"/><path d="M9 7l2-4 3 3 2-4 3 3 2-3v6z" fill="#fff" stroke="#404040"/><path d="M5 6h22v3H5z" fill="#c0c0c0" stroke="#404040"/><path d="M7 9h18l-2 20H9z" fill="#d4d0c8" stroke="#404040"/><g stroke="#808080"><line x1="12" y1="12" x2="13" y2="26"/><line x1="16" y1="12" x2="16" y2="26"/><line x1="20" y1="12" x2="19" y2="26"/></g></svg>',
+txt:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M7 2h12l6 6v22H7z" fill="#fff" stroke="#404040"/><path d="M19 2v6h6" fill="#e8e8e8" stroke="#404040"/><g stroke="#7da7d9" stroke-width="2"><line x1="11" y1="12" x2="21" y2="12"/><line x1="11" y1="16" x2="21" y2="16"/><line x1="11" y1="20" x2="21" y2="20"/><line x1="11" y1="24" x2="17" y2="24"/></g></svg>',
+folder:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M2 7h9l3 3h16v17H2z" fill="#ffd867" stroke="#7a5c00"/><path d="M2 12h28l-3 15H2z" fill="#ffe79a" stroke="#7a5c00"/></svg>',
+mine:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><g stroke="#000" stroke-width="2"><line x1="16" y1="2" x2="16" y2="30"/><line x1="2" y1="16" x2="30" y2="16"/><line x1="6" y1="6" x2="26" y2="26"/><line x1="26" y1="6" x2="6" y2="26"/></g><circle cx="16" cy="16" r="9" fill="#1a1a1a"/><rect x="11" y="9" width="5" height="5" fill="#fff"/></svg>',
+notepad:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="6" y="2" width="20" height="28" fill="#fff" stroke="#2c5fb0" stroke-width="2"/><g stroke="#7da7d9" stroke-width="2"><line x1="10" y1="9" x2="22" y2="9"/><line x1="10" y1="13" x2="22" y2="13"/><line x1="10" y1="17" x2="22" y2="17"/><line x1="10" y1="21" x2="22" y2="21"/></g></svg>',
+drive:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="3" y="10" width="26" height="13" fill="#d4d0c8" stroke="#5a5346"/><rect x="5" y="12" width="13" height="9" fill="#fff" stroke="#5a5346"/><rect x="21" y="18" width="6" height="2" fill="#3f7a3f"/></svg>',
+ie:'<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="12" fill="#4aa3ff" stroke="#1c4e9c"/><rect x="5" y="14" width="22" height="4" fill="#fff"/><ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="#ffd867" stroke-width="2" transform="rotate(-25 16 16)"/></svg>',
+};
+const DLG_ICONS={
+info:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#2c5fb0"/><rect x="14" y="13" width="4" height="10" fill="#fff"/><rect x="14" y="8" width="4" height="4" fill="#fff"/></svg>',
+warn:'<svg viewBox="0 0 32 32"><path d="M16 3 30 28H2z" fill="#ffd867" stroke="#404040"/><rect x="14" y="12" width="4" height="8"/><rect x="14" y="22" width="4" height="3"/></svg>',
+question:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#2c5fb0"/><text x="16" y="23" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Tahoma">?</text></svg>',
+error:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#c00"/><path d="M10 10l12 12M22 10 10 22" stroke="#fff" stroke-width="4"/></svg>',
+};
+/* 扫雷笑脸 */
+function faceSVG(s){
+ let eyes='',mouth='';
+ if(s==='dead'){eyes='<path d="M9 11l5 5M14 11l-5 5M18 11l5 5M23 11l-5 5" stroke="#000" stroke-width="1.8"/>';mouth='<path d="M10 24q6-5 12 0" fill="none" stroke="#000" stroke-width="1.8"/>';}
+ else if(s==='win'){eyes='<rect x="8" y="11" width="7" height="5" fill="#000"/><rect x="17" y="11" width="7" height="5" fill="#000"/><rect x="14.5" y="12.5" width="3" height="2" fill="#000"/>';mouth='<path d="M10 20q6 6 12 0" fill="none" stroke="#000" stroke-width="1.8"/>';}
+ else if(s==='wow'){eyes='<circle cx="11" cy="12" r="1.8" fill="#000"/><circle cx="21" cy="12" r="1.8" fill="#000"/>';mouth='<circle cx="16" cy="22" r="3.2" fill="none" stroke="#000" stroke-width="1.8"/>';}
+ else{eyes='<circle cx="11" cy="12" r="1.8" fill="#000"/><circle cx="21" cy="12" r="1.8" fill="#000"/>';mouth='<path d="M10 20q6 6 12 0" fill="none" stroke="#000" stroke-width="1.8"/>';}
+ return '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#ffe135" stroke="#c8a800" stroke-width="1.5"/>'+eyes+mouth+'</svg>';
+}
+const CELL_FLAG='<svg viewBox="0 0 16 16"><line x1="5" y1="2" x2="5" y2="13" stroke="#000" stroke-width="1.4"/><path d="M5 2h7l-2.5 2.5L12 7H5z" fill="#f00"/><rect x="2.5" y="13" width="6" height="1.5" fill="#000"/></svg>';
+const CELL_MINE='<svg viewBox="0 0 16 16"><g stroke="#000" stroke-width="1.2"><line x1="8" y1="1" x2="8" y2="15"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></g><circle cx="8" cy="8" r="4.2" fill="#000"/><rect x="5.6" y="5.2" width="2.4" height="2.4" fill="#fff"/></svg>';
+
+/* ================= 状态与持久化 ================= */
+const LS='win98sleep_v1';
+let state={items:[],bin:[],auto:false};
+let firstRun=false;
+try{
+  const raw=localStorage.getItem(LS);
+  if(raw){const d=JSON.parse(raw);state.items=d.items||[];state.bin=d.bin||[];state.auto=!!d.auto;}
+  else firstRun=true;
+}catch(e){firstRun=true;}
+function persist(){try{localStorage.setItem(LS,JSON.stringify({items:state.items,bin:state.bin,auto:state.auto}));}catch(e){}}
+if(firstRun){
+  state.items.push({id:uid(),type:'txt',name:'欢迎回家.txt',x:null,y:null,content:
+'欢迎来到 Windows 98 · 睡眠回收站\r\n\r\n1. 在桌面空白处 右键 → 新建 → 文本文档\r\n2. 把今天的烦心事写进去，然后保存\r\n3. 它们会被自动收进「回收站」\r\n4. 清空回收站，安心入睡\r\n\r\n也可以玩玩扫雷，或者把不想要的文件直接删掉。\r\n\r\n晚安。'});
+  persist();
+}
+
+/* ================= 菜单组件 ================= */
+let openMenus=[];
+function closeAllMenus(){openMenus.forEach(m=>m.remove());openMenus=[];$('#startBtn').classList.remove('active');document.querySelectorAll('.mb-item.open').forEach(b=>b.classList.remove('open'));}
+function buildMenu(items){
+  const el=document.createElement('div');el.className='ctx';
+  for(const it of items){
+    if(it.sep){const s=document.createElement('div');s.className='sep';el.appendChild(s);continue;}
+    const d=document.createElement('div');
+    d.className='it'+(it.disabled?' dis':'')+(it.bold?' bold':'');
+    d.innerHTML='<span class="tick">'+(it.checked?'✓':'')+'</span><span>'+esc(it.label)+'</span>'+(it.submenu?'<span class="arrow">▸</span>':'');
+    if(it.submenu){
+      const sub=buildMenu(it.submenu);sub.classList.add('sub');d.appendChild(sub);
+      d.addEventListener('mouseenter',()=>{requestAnimationFrame(()=>{
+        const r=sub.getBoundingClientRect();
+        if(r.right>innerWidth)sub.classList.add('flip');
+        if(r.bottom>innerHeight){sub.style.top='auto';sub.style.bottom='-4px';}
+      });});
+    }
+    if(!it.disabled&&it.action)d.addEventListener('click',e=>{e.stopPropagation();closeAllMenus();it.action();});
+    el.appendChild(d);
+  }
+  return el;
+}
+function popupMenu(x,y,items){
+  closeAllMenus();
+  const m=buildMenu(items);document.body.appendChild(m);
+  const r=m.getBoundingClientRect();
+  if(x+r.width>innerWidth)x=Math.max(0,innerWidth-r.width-2);
+  if(y+r.height>innerHeight)y=Math.max(0,y-r.height);
+  m.style.left=x+'px';m.style.top=y+'px';
+  openMenus.push(m);return m;
+}
+document.addEventListener('pointerdown',e=>{
+  if(!e.target.closest('.ctx')&&!e.target.closest('#startBtn')&&!e.target.closest('.mb-item'))closeAllMenus();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllMenus();});
+
+/* ================= 对话框 ================= */
+function dlg(opt){ // {title,text,buttons:[{label,value,default}],icon,input,defValue}
+  return new Promise(res=>{
+    const w=createWindow({title:opt.title||'提示',w:opt.input?380:340,task:false,dlg:true});
+    w.el.style.height='auto';
+    const body=w.body;
+    body.innerHTML='<div class="dlg-body">'+(opt.icon?'<div class="dicon-svg">'+DLG_ICONS[opt.icon]+'</div>':'')+'<div>'+esc(opt.text||'')+'</div></div>';
+    let inp=null;
+    if(opt.input){inp=document.createElement('input');inp.className='dlg-input';inp.value=opt.defValue||'';body.appendChild(inp);}
+    const btns=document.createElement('div');btns.className='dlg-btns';
+    const done=v=>{closeWindow(w);res(v);};
+    (opt.buttons||[{label:'确定',value:'ok',default:true}]).forEach(b=>{
+      const btn=document.createElement('button');btn.className='btn'+(b.default?' default':'');btn.textContent=b.label;
+      btn.onclick=()=>done(opt.input?(inp.value):b.value);
+      btns.appendChild(btn);
+    });
+    body.appendChild(btns);
+    const key=e=>{if(e.key==='Enter'){const d=(opt.buttons||[]).find(b=>b.default)||(opt.buttons||[])[0];done(opt.input?inp.value:(d?d.value:'ok'));}if(e.key==='Escape')done('cancel');};
+    w.el.addEventListener('keydown',key);
+    if(inp){inp.focus();inp.select();}else{const d=btns.querySelector('.btn.default')||btns.querySelector('.btn');if(d)d.focus();}
+    centerWindow(w);
+    w.onEsc=()=>done('cancel');
+  });
+}
+const msgbox=(title,text,icon='info')=>dlg({title,text,icon});
+const confirmBox=(title,text)=>dlg({title,text,icon:'question',buttons:[{label:'是(Y)',value:'yes',default:true},{label:'否(N)',value:'no'}]});
+const confirm3=(title,text)=>dlg({title,text,icon:'warn',buttons:[{label:'是(Y)',value:'yes',default:true},{label:'否(N)',value:'no'},{label:'取消',value:'cancel'}]});
+const promptBox=(title,label,def)=>dlg({title,text:label,input:true,defValue:def,buttons:[{label:'确定',value:'ok',default:true},{label:'取消',value:'cancel'}]});
+
+/* ================= 窗口管理器 ================= */
+const wins=new Set();let zTop=10,openX=0;
+function centerWindow(w){const r=w.el.getBoundingClientRect();w.el.style.left=Math.max(0,(innerWidth-r.width)/2)+'px';w.el.style.top=Math.max(0,(innerHeight-60-r.height)/2)+'px';}
+function createWindow(opt){ // {title,icon,w,h,x,y,menus,status,task,dlg,noMax}
+  const w={id:uid(),minimized:false,maximized:false,prev:null};
+  const el=document.createElement('div');el.className='win';el.tabIndex=-1;
+  if(opt.w)el.style.width=opt.w+'px';
+  if(opt.h)el.style.height=opt.h+'px';
+  el.style.left=(opt.x!=null?opt.x:60+openX)+'px';el.style.top=(opt.y!=null?opt.y:40+openX)+'px';
+  openX=(openX+24)%160;
+  el.innerHTML='<div class="titlebar"><span class="ticon">'+(opt.icon||'')+'</span><span class="ttext">'+esc(opt.title)+'</span><span class="tbtns">'+
+    '<span class="tbtn tb-min" title="最小化">_</span>'+(opt.noMax?'':'<span class="tbtn tb-max" title="最大化">□</span>')+'<span class="tbtn tb-close" title="关闭">×</span></span></div>';
+  if(opt.menus){
+    const bar=document.createElement('div');bar.className='menubar';
+    opt.menus.forEach(m=>{
+      const b=document.createElement('span');b.className='mb-item';b.textContent=m.label;
+      const open=()=>{closeAllMenus();b.classList.add('open');const r=b.getBoundingClientRect();const menu=popupMenu(r.left,r.bottom,m.items);menu.dataset.bar='1';};
+      b.addEventListener('click',e=>{e.stopPropagation();if(b.classList.contains('open')){closeAllMenus();}else open();});
+      b.addEventListener('mouseenter',()=>{if(openMenus.length&&openMenus[0].dataset.bar&&b.parentElement.contains(document.activeElement)||(openMenus.length&&bar.querySelector('.mb-item.open')&&!b.classList.contains('open')))open();});
+      bar.appendChild(b);
+    });
+    el.appendChild(bar);
+  }
+  const body=document.createElement('div');body.className='win-body';el.appendChild(body);
+  let status=null;
+  if(opt.status){status=document.createElement('div');status.className='statusbar';opt.status.forEach(t=>{const c=document.createElement('div');c.className='sb-cell';c.textContent=t;status.appendChild(c);});el.appendChild(status);}
+  $('#wins').appendChild(el);
+  w.el=el;w.body=body;w.status=status;w.title=opt.title;w.icon=opt.icon||'';
+  // 任务栏按钮
+  if(opt.task!==false){
+    const tb=document.createElement('div');tb.className='taskbtn';
+    tb.innerHTML=(opt.icon||'')+'<span style="overflow:hidden;text-overflow:ellipsis">'+esc(opt.title)+'</span>';
+    tb.addEventListener('click',()=>{if(w.minimized){w.minimized=false;el.style.display='flex';focusWin(w);}else if(w.el.classList.contains('inactive'))focusWin(w);else{w.minimized=true;el.style.display='none';tb.classList.remove('active');}});
+    $('#taskBtns').appendChild(tb);w.taskBtn=tb;
+  }
+  // 焦点
+  el.addEventListener('pointerdown',()=>focusWin(w));
+  focusWin(w);
+  // 拖动
+  const tbar=el.querySelector('.titlebar');
+  tbar.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.tbtn')||w.maximized||e.button!==0)return;
+    const sx=e.clientX-el.offsetLeft,sy=e.clientY-el.offsetTop;
+    const mv=ev=>{el.style.left=ev.clientX-sx+'px';el.style.top=ev.clientY-sy+'px';};
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);};
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);
+  });
+  tbar.addEventListener('dblclick',e=>{if(!e.target.closest('.tbtn')&&!opt.noMax)toggleMax(w);});
+  el.querySelector('.tb-min').onclick=e=>{e.stopPropagation();w.minimized=true;el.style.display='none';if(w.taskBtn)w.taskBtn.classList.remove('active');};
+  const mx=el.querySelector('.tb-max');if(mx)mx.onclick=e=>{e.stopPropagation();toggleMax(w);};
+  el.querySelector('.tb-close').onclick=async e=>{e.stopPropagation();await tryClose(w);};
+  wins.add(w);
+  return w;
+}
+function focusWin(w){
+  wins.forEach(o=>{o.el.classList.add('inactive');if(o.taskBtn)o.taskBtn.classList.remove('active');});
+  w.el.classList.remove('inactive');w.el.style.zIndex=++zTop;
+  if(w.taskBtn)w.taskBtn.classList.add('active');
+}
+function toggleMax(w){
+  const el=w.el;
+  if(!w.maximized){w.prev={l:el.style.left,t:el.style.top,w:el.style.width,h:el.style.height};
+    el.style.left='0px';el.style.top='0px';el.style.width='100%';el.style.height='100%';w.maximized=true;}
+  else{el.style.left=w.prev.l;el.style.top=w.prev.t;el.style.width=w.prev.w;el.style.height=w.prev.h;w.maximized=false;}
+}
+async function tryClose(w){
+  if(w.onBeforeClose){const ok=await w.onBeforeClose();if(!ok)return;}
+  closeWindow(w);
+}
+function closeWindow(w){if(w.taskBtn)w.taskBtn.remove();w.el.remove();wins.delete(w);if(w.onClosed)w.onClosed();}
+
+/* ================= 桌面图标 ================= */
+const desktop=$('#desktop');
+const CELL_W=80,CELL_H=94,PAD_X=8,PAD_Y=8;
+const builtins=[
+ {id:'mycomp',name:'我的电脑',icon:()=>ICO.pc,open:openMyComputer},
+ {id:'mydocs',name:'我的文档',icon:()=>ICO.folder,open:openMyDocs},
+ {id:'bin',name:'回收站',icon:()=>state.bin.length?ICO.binFull:ICO.bin,open:openBin},
+ {id:'ie',name:'Internet Explorer',icon:()=>ICO.ie,open:openIE},
+ {id:'mine',name:'扫雷',icon:()=>ICO.mine,open:()=>openMine('b')},
+ {id:'notepad',name:'记事本',icon:()=>ICO.notepad,open:()=>openNotepad(null)},
+];
+function rowsPerCol(){return Math.max(1,Math.floor((desktop.clientHeight-PAD_Y)/CELL_H));}
+function nextFreePos(occupied){
+  const rc=rowsPerCol();let idx=0;
+  while(true){const col=Math.floor(idx/rc),row=idx%rc;const x=PAD_X+col*CELL_W,y=PAD_Y+row*CELL_H;
+    if(!occupied.has(x+','+y))return{x,y};idx++;}
+}
+function renderDesktop(){
+  desktop.innerHTML='';
+  const occupied=new Set();
+  builtins.forEach((b,i)=>{const x=PAD_X,y=PAD_Y+i*CELL_H;occupied.add(x+','+y);addIcon({bid:b,x,y,name:b.name,icon:b.icon()});});
+  state.items.forEach(it=>{
+    if(it.x==null||state.auto){const p=nextFreePos(occupied);it.x=p.x;it.y=p.y;}
+    occupied.add(it.x+','+it.y);
+    addIcon({item:it,x:it.x,y:it.y,name:it.name,icon:it.type==='folder'?ICO.folder:ICO.txt});
+  });
+  persist();
+}
+function addIcon(o){
+  const d=document.createElement('div');d.className='dicon';
+  d.style.left=o.x+'px';d.style.top=o.y+'px';
+  d.innerHTML='<div class="img">'+o.icon+'</div><div class="lbl">'+esc(o.name)+'</div>';
+  // 选中 / 拖动
+  let dragged=false,sx=0,sy=0,ox=0,oy=0;
+  d.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    dragged=false;sx=e.clientX;sy=e.clientY;ox=d.offsetLeft;oy=d.offsetTop;
+    const mv=ev=>{if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>4)dragged=true;
+      if(dragged){d.style.left=Math.max(0,Math.min(desktop.clientWidth-76,ev.clientX-sx+ox))+'px';d.style.top=Math.max(0,Math.min(desktop.clientHeight-40,ev.clientY-sy+oy))+'px';}};
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+      if(dragged){if(o.item&&!state.auto){o.item.x=d.offsetLeft;o.item.y=d.offsetTop;persist();}else renderDesktop();}
+      else{desktop.querySelectorAll('.dicon').forEach(i=>i.classList.remove('sel'));d.classList.add('sel');}};
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);
+  });
+  d.addEventListener('dblclick',()=>{if(dragged)return;openIcon(o);});
+  d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();
+    desktop.querySelectorAll('.dicon').forEach(i=>i.classList.remove('sel'));d.classList.add('sel');
+    popupMenu(e.clientX,e.clientY,iconMenu(o));});
+  desktop.appendChild(d);
+}
+function openIcon(o){
+  if(o.bid)o.bid.open();
+  else if(o.item.type==='folder')openFolder(o.item);
+  else openNotepad(o.item);
+}
+function iconMenu(o){
+  if(o.bid){
+    const m=[{label:'打开',bold:true,action:()=>o.bid.open()}];
+    if(o.bid.id==='bin')m.push({label:'清空回收站(&E)',disabled:state.bin.length===0,action:emptyBin});
+    m.push({sep:true},{label:'属性',action:()=>propsOf(o.bid.name)});
+    return m;
+  }
+  return [
+   {label:'打开',bold:true,action:()=>openIcon(o)},
+   {sep:true},
+   {label:'重命名(&M)',action:()=>startRename(o.item)},
+   {label:'删除(&D)',action:()=>deleteItem(o.item)},
+   {sep:true},
+   {label:'属性(&R)',action:()=>propsOf(o.item.name,o.item)},
+  ];
+}
+function propsOf(name,item){
+  let t='类型：'+(item?(item.type==='folder'?'文件夹':'文本文档'):'系统图标');
+  let s='';
+  if(item&&item.type!=='folder')s='\n大小：'+new Blob([item.content||'']).size+' 字节';
+  msgbox(name+' 属性','名称：'+name+'\n'+t+s+'\n位置：桌面');
+}
+async function deleteItem(item){
+  const r=await confirmBox('确认删除','确实要把 \''+item.name+'\' 放入回收站吗？');
+  if(r!=='yes')return;
+  state.items=state.items.filter(i=>i!==item);
+  state.bin.push({id:uid(),kind:'file',name:item.name,content:item.content||'',origType:item.type,origId:item.id});
+  persist();renderDesktop();refreshBinWin();
+}
+function uniqueName(base){
+  const names=new Set(state.items.map(i=>i.name));
+  if(!names.has(base))return base;
+  const m=base.match(/^(.*?)(\.[^.]+)?$/);const stem=m[1],ext=m[2]||'';
+  let n=2;while(names.has(stem+' ('+n+')'+ext))n++;
+  return stem+' ('+n+')'+ext;
+}
+function findIconEl(item){return [...desktop.querySelectorAll('.dicon')].find(d=>d.querySelector('.lbl')&&d.querySelector('.lbl').textContent===item.name);}
+function startRename(item){
+  const el=findIconEl(item);if(!el)return;
+  const lbl=el.querySelector('.lbl');
+  const inp=document.createElement('input');inp.value=item.name;
+  lbl.textContent='';lbl.appendChild(inp);inp.focus();
+  if(/\.txt$/i.test(item.name))inp.setSelectionRange(0,item.name.length-4);else inp.select();
+  let done=false;
+  const commit=cancel=>{
+    if(done)return;done=true;
+    let v=inp.value.trim();
+    if(cancel||!v)v=item.name;
+    else{
+      if(item.type==='txt'&&!/\.txt$/i.test(v))v+='.txt';
+      if(state.items.some(i=>i!==item&&i.name===v)){msgbox('重命名错误','无法重命名：已存在同名文件。');v=item.name;}
+    }
+    item.name=v;persist();renderDesktop();
+  };
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit(false);if(e.key==='Escape')commit(true);e.stopPropagation();});
+  inp.addEventListener('blur',()=>commit(false));
+  inp.addEventListener('pointerdown',e=>e.stopPropagation());
+}
+function createItem(type){
+  const name=uniqueName(type==='folder'?'新建 文件夹':'新建 文本文档.txt');
+  const item={id:uid(),type,name,content:'',x:null,y:null};
+  state.items.push(item);persist();renderDesktop();
+  startRename(item);
+}
+/* 桌面右键菜单 */
+desktop.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  popupMenu(e.clientX,e.clientY,[
+   {label:'排列图标(&I)',submenu:[
+     {label:'按名称(&N)',action:()=>{state.items.sort((a,b)=>a.name.localeCompare(b.name,'zh'));state.items.forEach(i=>{i.x=null;});renderDesktop();}},
+     {label:'按类型(&T)',action:()=>{state.items.sort((a,b)=>(a.type===b.type?a.name.localeCompare(b.name,'zh'):a.type==='folder'?-1:1));state.items.forEach(i=>{i.x=null;});renderDesktop();}},
+     {label:'按大小(&Z)',disabled:true},
+     {label:'按日期(&D)',disabled:true},
+     {sep:true},
+     {label:'自动排列(&A)',checked:state.auto,action:()=>{state.auto=!state.auto;if(state.auto)state.items.forEach(i=>{i.x=null;});renderDesktop();}},
+   ]},
+   {label:'刷新(&E)',action:()=>renderDesktop()},
+   {sep:true},
+   {label:'粘贴(&P)',disabled:true},
+   {label:'粘贴快捷方式(&S)',disabled:true},
+   {sep:true},
+   {label:'新建(&W)',submenu:[
+     {label:'文件夹(&F)',action:()=>createItem('folder')},
+     {label:'快捷方式(&S)',disabled:true},
+     {sep:true},
+     {label:'文本文档(&T)',action:()=>createItem('txt')},
+     {label:'位图图像(&B)',disabled:true},
+     {label:'波形声音(&W)',disabled:true},
+   ]},
+   {sep:true},
+   {label:'属性(&R)',action:openDisplayProps},
+  ]);
+});
+desktop.addEventListener('pointerdown',e=>{if(e.target===desktop)desktop.querySelectorAll('.dicon').forEach(i=>i.classList.remove('sel'));});
+
+/* ================= 负面内容识别 → 回收站 ================= */
+/* 分类词库：覆盖 情绪/工作学业/健康/人际情感/经济/生活 六大类 */
+const NEG_LEX=[
+ ['情绪心理',['焦虑','紧张','不安','担心','害怕','恐惧','恐慌','心慌','压力','烦躁','郁闷','沮丧','难过','伤心','委屈','后悔','内疚','愧疚','崩溃','哭','眼泪','孤独','寂寞','无助','绝望','空虚','迷茫','失败','生气','愤怒','郁闷','emo','破防','心态崩','抑郁','低落','悲观','自卑','内耗','胡思乱想','想太多','翻来覆去','心里堵','烦','闷','丧','痛','恨','怨','怒']],
+ ['工作学业',['加班','老板','领导','方案','汇报','开会','考核','绩效','裁员','离职','辞职','上班','周报','月报','答辩','论文','考试','作业','成绩','挂科','重修','考研','面试','毕设','课题','实验','需求','改需求','甲方','客户','赶工','截止','催稿','述职','调休','ddl','deadline','bug','kpi','ppt','工作']],
+ ['健康身体',['失眠','睡不着','睡不好','熬夜','噩梦','惊醒','早醒','头疼','头痛','头晕','生病','感冒','发烧','咳嗽','胃疼','腰痛','脱发','疲惫','疲劳','乏力','医院','体检','吃药','手术','牙疼','过敏','发胖','长痘','心慌','胸闷','耳鸣','眼睛疼','颈椎病','累']],
+ ['人际情感',['吵架','争吵','冷战','分手','失恋','前任','男朋友','女朋友','老公','老婆','催婚','相亲','闺蜜','室友','矛盾','误会','背叛','孤立','排挤','尴尬','道歉','拉黑','被删','绝交','催孩子','婆媳','孩子叛逆','不听话']],
+ ['经济金钱',['工资','房租','房贷','车贷','债务','欠债','借钱','还钱','信用卡','花呗','账单','存款','涨价','罚款','亏损','股票','基金','被骗','报销','押金','开销','生活费','穷','裁员','降薪','扣钱','尾款','定金']],
+ ['生活状态',['拖延','来不及','赶不上','起不来','堵车','迟到','排队','搬家','停水','停电','断网','丢了','忘带','错过','抢不到','售罄','约不上','维修','漏水','噪音','邻居吵','装修','快递丢','外卖洒','排队久']],
+ ['程序开发',['上线','发版','回滚','宕机','报警','值班','评审','联调','提测','合并冲突','报错','服务器','数据库','接口','线上事故','重构','屎山','技术债','优化名单','oncall','996']],
+ ['医疗护理',['夜班','急诊','手术','病人','抢救','查房','医患','医嘱','输液','会诊','发热门诊','连轴转']],
+ ['教育教学',['备课','教案','公开课','家长群','批改','试卷','班主任','教研','听课','评课','职称','早读','晚自习','成绩排名','家长会']],
+ ['销售业绩',['业绩','指标','签单','回款','提成','拜访','报价','投标','应酬','月度目标','末位淘汰','客户流失']],
+ ['财务金融',['对账','报表','审计','报税','结账','风控','合规','凭证','发票','汇算','平仓','爆仓']],
+ ['设计创作',['改稿','截稿','选题','审稿','排版','过稿','播放量','涨粉','阅读量','点赞','完播率','甲方爸爸']],
+ ['体力劳作',['流水线','计件','倒班','产量','质检','工伤','高温','粉尘','力气活','站一天']],
+ ['服务一线',['差评','投诉','客诉','翻台','超时','罚款','派单','好评率','催单','漏单']],
+ ['创业经营',['现金流','融资','合伙人','订单','货款','门店','租金','客流','倒闭','员工工资','压货']],
+ ['家庭育儿',['带娃','辅导作业','接送','家务','孩子成绩','兴趣班','奶粉','尿布','哄睡','夜醒']],
+ ['学生学业',['导师','组会','查重','排名','保研','志愿','复试','四六级','实习','秋招','春招','简历','offer']],
+];
+/* 句式规则：捕获词库覆盖不到的表达 */
+const NEG_PATTERNS=[
+ [/(?:不想|没法|没办法|来不及|搞砸|完蛋|撑不住|顶不住|受不了|扛不住|熬不住|坚持不住)/,'情绪心理','撑不住'],
+ [/(?:不|没|难以|无法)(?:开心|高兴|舒服|顺利|满意|放松|安心|入睡|睡着)/,'情绪心理','不踏实'],
+ [/怎么办/,'情绪心理','迷茫'],
+ [/(明天|下周|下个月|月底|年末|明年).{0,12}(要|得|还要|必须)/,'未来压力','明天的事'],
+ [/\b(?:anxious|anxiety|worried|worry|sad|tired|exhausted|stress|stressed|depress\w*|cry|crying|hate|angry|insomnia|panic|fear|lonely|hopeless|fail\w*|mess\w*|screw\w*)\b/,'情绪心理','bad mood'],
+];
+/* 每个分类的晚安赠言 */
+const CAT_TIPS={'情绪心理':'情绪被收好了，你可以松一口气。','工作学业':'工作做不完，月亮也不催你。','健康身体':'身体是陪你最久的，先好好休息。','人际情感':'人和人的事，明天再放在心上。','经济金钱':'钱的事慢慢算，今晚先不算。','生活状态':'琐事已封存，今晚不营业。','未来压力':'明天的事，交给明天的你。','程序开发':'代码明天还在，bug 也明天再修。','医疗护理':'你照顾了别人一天，现在换月亮照顾你。','教育教学':'作业批改不完，先把自己的觉睡好。','销售业绩':'单子今晚不跑，跑的是明天的你。','财务金融':'账是算不完的，先给大脑结个账。','设计创作':'灵感喜欢睡在好觉后面。','体力劳作':'辛苦了一整天，身体值得彻底休息。','服务一线':'今天的委屈到此为止，打烊了。','创业经营':'公司今晚打烊，老板也要睡觉。','家庭育儿':'小家伙睡了，你也该睡了。','学生学业':'分数定型不了人生，先睡个好觉。'};
+function splitSentences(t){return t.split(/[。！？!?；;…\r\n]+/).map(s=>s.trim()).filter(s=>s.length>=2);}
+/* 返回 Map：关键词 → {cat, sents:[...]} */
+function analyzeWorries(text){
+  const groups=new Map();
+  const add=(kw,cat,s)=>{
+    if(!groups.has(kw))groups.set(kw,{cat,sents:[]});
+    const g=groups.get(kw);if(!g.sents.includes(s))g.sents.push(s);
+  };
+  for(const s of splitSentences(text)){
+    const low=s.toLowerCase();
+    let best=null,bi=1e9;
+    for(const [cat,words] of NEG_LEX){
+      for(const w of words){
+        const i=low.indexOf(w.toLowerCase());
+        if(i>=0&&(i<bi||(i===bi&&best&&w.length>best.kw.length))){best={kw:w,cat};bi=i;}
+      }
+    }
+    if(best){add(best.kw,best.cat,s);continue;}
+    for(const [re,cat,kw] of NEG_PATTERNS){
+      if(re.test(s)){add(kw,cat,s);break;}
+    }
+  }
+  return groups;
+}
+function binNameUnique(base){const names=new Set(state.bin.map(e=>e.name));if(!names.has(base))return base;
+  const m=base.match(/^(.*?)(\.[^.]+)?$/);const stem=m[1],ext=m[2]||'';let n=2;while(names.has(stem+' ('+n+')'+ext))n++;return stem+' ('+n+')'+ext;}
+function importWorries(item,groups){
+  state.bin=state.bin.filter(e=>!(e.kind==='worry'&&e.sourceId===item.id));
+  let n=0;
+  for(const [kw,info] of groups){
+    const name=binNameUnique('烦恼-'+kw+'.txt');
+    const tip=CAT_TIPS[info.cat]||'今晚把它留在这里，安心去睡。';
+    const content='主题：「'+kw+'」 · '+info.cat+'\r\n\r\n'+info.sents.join('\r\n')+'\r\n\r\n—— 已替你收进睡眠回收站。\r\n   '+tip;
+    state.bin.push({id:uid(),kind:'worry',kw,cat:info.cat,sourceId:item.id,sourceName:item.name,name,content});
+    n++;
+  }
+  rebuildSummary();persist();renderDesktop();refreshBinWin();
+  return n;
+}
+function rebuildSummary(){
+  state.bin=state.bin.filter(e=>e.kind!=='summary');
+  const worries=state.bin.filter(e=>e.kind==='worry');
+  if(!worries.length)return;
+  const list=worries.map((e,i)=>' '+(i+1)+'. 关于「'+e.kw+'」的事'+(e.cat?'（'+e.cat+'）':''));
+  state.bin.unshift({id:uid(),kind:'summary',name:'今晚小结.txt',content:
+'今晚，回收站替你保管着 '+worries.length+' 件烦心事：\r\n\r\n'+list.join('\r\n')+'\r\n\r\n它们都已封存，不再需要你操心。\r\n窗外有月亮，梦里没烦恼。晚安。'});
+}
+function runImport(item){
+  const text=item.content||'';
+  if(!text.trim())return;
+  const groups=analyzeWorries(text);
+  if(groups.size===0){msgbox('睡眠回收站','没有检测到烦心事。\n今晚也要一夜好梦。');return;}
+  const n=importWorries(item,groups);
+  msgbox('睡眠回收站','已将 '+n+' 件烦心事移入回收站。\n安心入睡吧，晚安。');
+}
+
+/* ================= 记事本 ================= */
+const notepadWins=new Map();
+function openNotepad(item,readonly){
+  if(item&&notepadWins.has(item.id)){focusWin(notepadWins.get(item.id));return;}
+  const title=(item?item.name:'无标题')+' - 记事本';
+  const menus=readonly?[{label:'文件(&F)',items:[{label:'关闭(&C)',action:async()=>{await tryClose(w);}}]}]:
+   [{label:'文件(&F)',items:[
+     {label:'保存(&S)',action:()=>save()},
+     {sep:true},
+     {label:'退出(&X)',action:async()=>{await tryClose(w);}},
+   ]},
+   {label:'编辑(&E)',items:[
+     {label:'时间/日期(&D)   F5',action:()=>insertTime()},
+     {sep:true},
+     {label:'全选(&A)',action:()=>{ta.focus();ta.select();}},
+   ]},
+   {label:'格式(&O)',items:[
+     {label:'自动换行(&W)',get checked(){return wrapOn;},action:()=>{wrapOn=!wrapOn;applyWrap();}},
+     {label:'字体(&F)...',action:()=>openFontDlg()},
+   ]},
+   {label:'帮助(&H)',items:[{label:'关于记事本(&A)',action:()=>msgbox('关于记事本','记事本 (Windows 98 · 睡眠回收站)\n\n写下来的烦恼，保存后会自动搬进回收站。')}]}];
+  const w=createWindow({title,icon:ICO.notepad,w:520,h:380,menus});
+  const ta=document.createElement('textarea');ta.className='np-area';ta.spellcheck=false;
+  ta.value=item?(item.content||''):'';if(readonly)ta.readOnly=true;
+  w.body.appendChild(ta);ta.focus();
+  if(readonly)return w;
+  let dirty=false;let bound=item||null;
+  let wrapOn=true;
+  function applyWrap(){ta.wrap=wrapOn?'soft':'off';ta.style.whiteSpace=wrapOn?'pre-wrap':'pre';}
+  applyWrap();
+  async function openFontDlg(){
+    const r=await dlg({title:'字体',text:'选择字号：',buttons:[{label:'小',value:'12'},{label:'中',value:'13',default:true},{label:'大',value:'16'}]});
+    if(r!=='cancel')ta.style.fontSize=r+'px';
+  }
+  ta.addEventListener('input',()=>{dirty=true;});
+  ta.addEventListener('keydown',e=>{
+    if(e.ctrlKey&&(e.key==='s'||e.key==='S')){e.preventDefault();save();}
+    if(e.key==='F5'){e.preventDefault();insertTime();}
+  });
+  function insertTime(){
+    const d=new Date();
+    const t=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' '+d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+    ta.setRangeText(t,ta.selectionStart,ta.selectionEnd,'end');
+    dirty=true;ta.focus();
+  }
+  async function save(){
+    if(!bound){
+      const v=await promptBox('另存为','请输入文件名：',uniqueName('新建 文本文档.txt'));
+      if(v==='cancel'||!v||!v.trim())return;
+      let name=v.trim();if(!/\.txt$/i.test(name))name+='.txt';
+      bound={id:uid(),type:'txt',name:uniqueName(name),content:'',x:null,y:null};
+      state.items.push(bound);
+      w.el.querySelector('.ttext').textContent=bound.name+' - 记事本';
+      if(w.taskBtn)w.taskBtn.querySelector('span').textContent=bound.name+' - 记事本';
+      notepadWins.set(bound.id,w);
+    }
+    bound.content=ta.value;dirty=false;persist();renderDesktop();
+    runImport(bound);
+  }
+  w.onBeforeClose=async()=>{
+    if(!dirty)return true;
+    const r=await confirm3('记事本','文件 '+(bound?bound.name:'无标题')+' 的内容已经改变。\n是否保存？');
+    if(r==='cancel')return false;
+    if(r==='yes')await save();
+    return true;
+  };
+  if(bound)notepadWins.set(bound.id,w);
+  w.onClosed=()=>{if(bound)notepadWins.delete(bound.id);};
+  return w;
+}
+
+/* ================= 回收站窗口 ================= */
+let binWin=null;
+function openBin(){
+  if(binWin){focusWin(binWin);return;}
+  const menus=[{label:'文件(&F)',items:[
+    {label:'清空回收站(&E)',disabled:false,action:emptyBin},
+    {sep:true},
+    {label:'关闭(&C)',action:async()=>{await tryClose(binWin);}},
+  ]},
+  {label:'帮助(&H)',items:[{label:'关于回收站(&A)',action:()=>msgbox('关于回收站','回收站 (Windows 98 · 睡眠回收站)\n\n这里替你保管今晚的烦心事。\n清空它们，然后安心入睡。')}]}];
+  binWin=createWindow({title:'回收站',icon:ICO.bin,w:520,h:360,menus,status:['','']});
+  binWin.onClosed=()=>{binWin=null;};
+  buildBinBody();refreshBinStatus();
+  binWin.body.addEventListener('contextmenu',e=>{
+    if(e.target.closest('.bicon'))return;
+    e.preventDefault();
+    popupMenu(e.clientX,e.clientY,[
+      {label:'清空回收站(&E)',disabled:state.bin.length===0,action:emptyBin},
+      {sep:true},
+      {label:'刷新(&R)',action:()=>{buildBinBody();refreshBinStatus();}},
+    ]);
+  });
+}
+function buildBinBody(){
+  const b=binWin.body;b.innerHTML='';
+  const box=document.createElement('div');box.className='bin-body';
+  if(!state.bin.length){box.innerHTML='<div class="bin-empty">（空）<br><br>今晚没有烦恼，做个好梦。</div>';}
+  state.bin.forEach(en=>{
+    const d=document.createElement('div');d.className='bicon';
+    d.innerHTML='<div class="img">'+(en.kind==='file'&&en.origType==='folder'?ICO.folder:ICO.txt)+'</div><div class="lbl">'+esc(en.name)+'</div>';
+    d.addEventListener('pointerdown',()=>{box.querySelectorAll('.bicon').forEach(i=>i.classList.remove('sel'));d.classList.add('sel');});
+    d.addEventListener('dblclick',()=>openBinEntry(en));
+    d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();
+      box.querySelectorAll('.bicon').forEach(i=>i.classList.remove('sel'));d.classList.add('sel');
+      const m=[];
+      if(en.kind==='file')m.push({label:'还原(&R)',action:()=>restoreEntry(en)});
+      m.push({label:'删除(&D)',action:()=>deleteEntry(en)},{sep:true},
+        {label:'属性(&R)',action:()=>msgbox(en.name+' 属性','名称：'+en.name+'\n类型：'+(en.kind==='worry'?'烦心事':en.kind==='summary'?'小结':'文件')+'\n大小：'+new Blob([en.content||'']).size+' 字节')});
+      popupMenu(e.clientX,e.clientY,m);});
+    box.appendChild(d);
+  });
+  b.appendChild(box);
+}
+function refreshBinStatus(){if(binWin&&binWin.status){binWin.status.children[0].textContent=state.bin.length+' 个对象';binWin.status.children[1].textContent=state.bin.length?'双击可查看':'';}}
+function refreshBinWin(){if(binWin){buildBinBody();refreshBinStatus();}}
+function openBinEntry(en){
+  if(en.kind==='file'&&en.origType==='folder'){openFolder({name:en.name});return;}
+  openNotepad({id:'bin_'+en.id,name:en.name,content:en.content},true);
+}
+function restoreEntry(en){
+  const item={id:en.origId||uid(),type:en.origType||'txt',name:uniqueName(en.name),content:en.content||'',x:null,y:null};
+  state.items.push(item);
+  state.bin=state.bin.filter(e=>e!==en);
+  persist();renderDesktop();refreshBinWin();
+}
+async function deleteEntry(en){
+  const r=await confirmBox('确认删除','确实要永久删除 \''+en.name+'\' 吗？');
+  if(r!=='yes')return;
+  state.bin=state.bin.filter(e=>e!==en);
+  rebuildSummary();persist();renderDesktop();refreshBinWin();
+}
+async function emptyBin(){
+  if(!state.bin.length){msgbox('回收站','回收站已经是空的。');return;}
+  const r=await confirmBox('确认清空回收站','确实要删除这 '+state.bin.length+' 项吗？');
+  if(r!=='yes')return;
+  state.bin=[];persist();renderDesktop();refreshBinWin();
+  msgbox('睡眠回收站','烦恼已全部清空。\n晚安，做个好梦。');
+}
+
+/* ================= 我的电脑 / 文件夹 / 显示属性 ================= */
+function openMyComputer(){
+  const w=createWindow({title:'我的电脑',icon:ICO.pc,w:440,h:300,status:['3 个对象']});
+  const box=document.createElement('div');box.className='mc-body';
+  [['软盘 (A:)','drive'],['(C:)','drive'],['控制面板','folder']].forEach(([name,ic])=>{
+    const d=document.createElement('div');d.className='bicon';
+    d.innerHTML='<div class="img">'+ICO[ic]+'</div><div class="lbl">'+esc(name)+'</div>';
+    d.addEventListener('dblclick',async()=>{
+      if(name==='控制面板')openDisplayProps();
+      else dlg({title:'错误',text:'无法访问 '+name.split(' ')[0]+'\\。\n设备尚未准备好（它也睡着了）。',icon:'error',buttons:[{label:'重试(&R)',value:'retry',default:true},{label:'取消',value:'cancel'}]});
+    });
+    box.appendChild(d);
+  });
+  w.body.appendChild(box);
+}
+function openMyDocs(){
+  const w=createWindow({title:'我的文档',icon:ICO.folder,w:440,h:300,status:['0 个对象']});
+  const box=document.createElement('div');box.className='mc-body';
+  box.innerHTML='<div class="bin-empty">（空）<br><br>文档都搬到桌面上啦。</div>';
+  w.body.appendChild(box);
+}
+function openIE(){
+  const w=createWindow({title:'Internet Explorer',icon:ICO.ie,w:560,h:400});
+  w.body.innerHTML='<div class="ie-bar">地址(&D)<div class="ie-addr">http://www.goodnight98.com/</div></div><div class="ie-page">无法显示网页<br><br>梦境网络已断开连接。<br>今晚不用上网，安心入睡。</div>';
+}
+function openFolder(item){
+  const w=createWindow({title:item.name,icon:ICO.folder,w:440,h:300,status:['0 个对象']});
+  const box=document.createElement('div');box.className='mc-body';
+  box.innerHTML='<div class="bin-empty">（空）</div>';
+  w.body.appendChild(box);
+}
+function openDisplayProps(){
+  const w=createWindow({title:'显示 属性',icon:ICO.pc,w:380,task:false,dlg:true,noMax:true});
+  w.body.innerHTML='<div class="props">主题：睡眠回收站\n背景：蓝绿色（经典）\n屏幕保护程序：星空（约 23:00 自动入睡）\n外观：Windows 经典</div>';
+  const btns=document.createElement('div');btns.className='dlg-btns';
+  const ok=document.createElement('button');ok.className='btn default';ok.textContent='确定';ok.onclick=()=>closeWindow(w);
+  btns.appendChild(ok);w.body.appendChild(btns);centerWindow(w);
+}
+
+/* ================= 扫雷 ================= */
+const MINE_LEVELS={b:{w:9,h:9,m:10,name:'初级'},i:{w:16,h:16,m:40,name:'中级'},e:{w:30,h:16,m:99,name:'高级'}};
+let mineWin=null;
+function openMine(level){
+  if(mineWin){mineWin.setLevel(level||mineWin.levelKey);focusWin(mineWin.win);return;}
+  const w=createWindow({title:'扫雷',icon:ICO.mine,w:9*20+26,menus:[
+    {label:'游戏(&G)',items:[
+      {label:'开局(&N)',action:()=>reset()},
+      {sep:true},
+      {label:'初级(&B)',checked:true,action:()=>setLevel('b')},
+      {label:'中级(&I)',action:()=>setLevel('i')},
+      {label:'高级(&E)',action:()=>setLevel('e')},
+      {sep:true},
+      {label:'退出(&X)',action:async()=>{await tryClose(w);}},
+    ]},
+    {label:'帮助(&H)',items:[{label:'关于扫雷(&A)',action:()=>msgbox('关于扫雷','扫雷 (Windows 98)\n\n左键翻开，右键插旗。\n睡前扫一盘，烦恼全扫光。')}]}]});
+  mineWin={win:w,levelKey:'b',setLevel:null};
+  w.onClosed=()=>{clearInterval(timerId);mineWin=null;};
+  const wrap=document.createElement('div');wrap.className='mz-wrap';
+  wrap.innerHTML='<div class="mz-top"><div class="lcd lcd-m">010</div><div class="face"></div><div class="lcd lcd-t">000</div></div><div class="mz-grid"></div>';
+  w.body.appendChild(wrap);w.body.style.alignItems='flex-start';
+  const face=wrap.querySelector('.face'),grid=wrap.querySelector('.mz-grid'),lcdM=wrap.querySelector('.lcd-m'),lcdT=wrap.querySelector('.lcd-t');
+  const mi=w.el.querySelectorAll('.menubar .mb-item');
+  let L=MINE_LEVELS.b,cells=[],marks=[],opened=0,over=false,first=true,secs=0,timerId=null,flagN=0;
+  function pad(n){return (n<0?'-':'')+String(Math.abs(n)).padStart(n<0?2:3,'0').slice(-3);}
+  function setFace(s){face.innerHTML=faceSVG(s);}
+  function setLevel(k){
+    mineWin.levelKey=k;L=MINE_LEVELS[k];
+    w.el.style.width=(L.w*20+26)+'px';
+    const items=w.el.querySelectorAll('.menubar .mb-item');
+    w.el.querySelectorAll('.ctx').forEach(m=>m.remove());
+    reset();
+  }
+  mineWin.setLevel=setLevel;
+  face.addEventListener('click',reset);
+  function reset(){
+    clearInterval(timerId);timerId=null;secs=0;lcdT.textContent='000';
+    opened=0;over=false;first=true;flagN=0;
+    cells=Array.from({length:L.h},()=>Array(L.w).fill(0)); // 0..8, 9=雷
+    marks=Array.from({length:L.h},()=>Array(L.w).fill(0)); // 0无 1旗 2?
+    lcdM.textContent=pad(L.m);setFace('smile');buildGrid();
+  }
+  function buildGrid(){
+    grid.innerHTML='';grid.style.gridTemplateColumns='repeat('+L.w+',20px)';
+    for(let r=0;r<L.h;r++)for(let c=0;c<L.w;c++){
+      const d=document.createElement('div');d.className='cell';d.dataset.r=r;d.dataset.c=c;
+      d.addEventListener('click',()=>openCell(r,c,d));
+      d.addEventListener('contextmenu',e=>{e.preventDefault();markCell(r,c,d);});
+      d.addEventListener('pointerdown',()=>{if(!over)setFace('wow');});
+      d.addEventListener('pointerup',()=>{if(!over)setFace('smile');});
+      grid.appendChild(d);
+    }
+  }
+  function placeMines(sr,sc){
+    let placed=0;
+    while(placed<L.m){
+      const r=Math.floor(Math.random()*L.h),c=Math.floor(Math.random()*L.w);
+      if(cells[r][c]===9)continue;
+      if(Math.abs(r-sr)<=1&&Math.abs(c-sc)<=1)continue;
+      cells[r][c]=9;placed++;
+    }
+    for(let r=0;r<L.h;r++)for(let c=0;c<L.w;c++){
+      if(cells[r][c]===9)continue;let n=0;
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&rr<L.h&&cc>=0&&cc<L.w&&cells[rr][cc]===9)n++;}
+      cells[r][c]=n;
+    }
+  }
+  function startTimer(){timerId=setInterval(()=>{secs=Math.min(999,secs+1);lcdT.textContent=pad(secs);},1000);}
+  function cellEl(r,c){return grid.children[r*L.w+c];}
+  function openCell(r,c,d){
+    if(over||marks[r][c]===1)return;
+    if(first){first=false;placeMines(r,c);startTimer();}
+    if(marks[r][c]===2){marks[r][c]=0;d.textContent='';}
+    if(d.classList.contains('open'))return;
+    if(cells[r][c]===9){lose(r,c);return;}
+    reveal(r,c);
+    if(opened===L.w*L.h-L.m)winGame();
+  }
+  function reveal(r,c){
+    const q=[[r,c]];
+    while(q.length){
+      const [rr,cc]=q.pop();const d=cellEl(rr,cc);
+      if(d.classList.contains('open'))continue;
+      d.classList.add('open');d.innerHTML='';
+      if(marks[rr][cc]===1){marks[rr][cc]=0;flagN--;lcdM.textContent=pad(L.m-flagN);}
+      opened++;
+      const n=cells[rr][cc];
+      if(n>0){d.textContent=n;d.classList.add('n'+n);}
+      else for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const r2=rr+dr,c2=cc+dc;
+        if(r2>=0&&r2<L.h&&c2>=0&&c2<L.w&&!cellEl(r2,c2).classList.contains('open'))q.push([r2,c2]);}
+    }
+  }
+  function markCell(r,c,d){
+    if(over||d.classList.contains('open'))return;
+    marks[r][c]=(marks[r][c]+1)%3;
+    if(marks[r][c]===1){d.innerHTML=CELL_FLAG;flagN++;}
+    else if(marks[r][c]===2){d.textContent='?';flagN--;}
+    else{d.textContent='';d.innerHTML='';}
+    lcdM.textContent=pad(L.m-flagN);
+  }
+  function lose(br,bc){
+    over=true;clearInterval(timerId);setFace('dead');
+    for(let r=0;r<L.h;r++)for(let c=0;c<L.w;c++){
+      const d=cellEl(r,c);
+      if(cells[r][c]===9&&marks[r][c]!==1){d.classList.add('open');d.innerHTML=CELL_MINE;}
+      if(cells[r][c]!==9&&marks[r][c]===1){d.classList.add('open');d.innerHTML=CELL_MINE+'<span style="position:absolute;color:#f00;font-weight:bold">×</span>';}
+    }
+    cellEl(br,bc).classList.add('boom');
+  }
+  function winGame(){
+    over=true;clearInterval(timerId);setFace('win');
+    lcdM.textContent='000';
+    msgbox('扫雷','你赢了！用时 '+secs+' 秒。\n地雷扫光，烦恼也扫光。');
+  }
+  reset();
+}
+
+/* ================= 开始菜单 ================= */
+function toggleStartMenu(){
+  if(openMenus.length){closeAllMenus();return;}
+  $('#startBtn').classList.add('active');
+  const m=document.createElement('div');m.className='ctx';m.id='startmenu';
+  m.innerHTML='<div class="sm-banner"><span>Windows<sup>98</sup></span></div>';
+  const list=buildMenu([
+   {label:'程序(&P)',submenu:[
+     {label:'扫雷',action:()=>openMine('b')},
+     {label:'记事本',action:()=>openNotepad(null)},
+     {sep:true},
+     {label:'我的电脑',action:openMyComputer},
+   ]},
+   {label:'收藏夹(&A)',disabled:true},
+   {label:'文档(&D)',disabled:true},
+   {label:'设置(&S)',submenu:[
+     {label:'控制面板(&C)',action:openDisplayProps},
+     {label:'任务栏和开始菜单(&T)',disabled:true},
+   ]},
+   {label:'查找(&F)',disabled:true},
+   {label:'帮助(&H)',action:()=>msgbox('睡眠回收站','Windows 98 · 睡眠回收站\n\n把今天的烦恼写进文本文档，\n它们会被自动收进回收站。\n清空回收站，安心入睡。')},
+   {label:'运行(&R)...',action:openRun},
+   {sep:true},
+   {label:'注销(&L)...',disabled:true},
+   {label:'关机(&U)...',action:()=>{$('#shutdown').classList.remove('hidden');}},
+  ]);
+  m.appendChild(list);
+  document.body.appendChild(m);
+  const h=m.offsetHeight;
+  m.style.left='2px';m.style.top=(innerHeight-30-h-2)+'px';
+  openMenus.push(m);
+}
+$('#startBtn').addEventListener('click',e=>{e.stopPropagation();toggleStartMenu();});
+$('#qlDesk').addEventListener('click',()=>{wins.forEach(w=>{w.minimized=true;w.el.style.display='none';if(w.taskBtn)w.taskBtn.classList.remove('active');});});
+$('#qlIE').addEventListener('click',()=>openIE());
+$('#shutdown').addEventListener('click',()=>$('#shutdown').classList.add('hidden'));
+async function openRun(){
+  const v=await promptBox('运行','键入程序、文件夹、文档或 Internet 资源的名称，\nWindows 将为您打开它。','');
+  if(v==='cancel')return;
+  const s=(v||'').trim().toLowerCase();
+  if(['notepad','记事本'].includes(s))openNotepad(null);
+  else if(['winmine','mine','扫雷'].includes(s))openMine('b');
+  else if(['explorer','我的电脑'].includes(s))openMyComputer();
+  else if(s)dlg({title:'运行',text:'找不到文件 \''+v+'\'（或它的组件之一）。\n请确定路径和文件名是否正确。',icon:'error'});
+}
+
+/* ================= 时钟 / 开机 ================= */
+function tickClock(){const d=new Date();$('#clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  $('#clock').title=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';}
+tickClock();setInterval(tickClock,5000);
+setTimeout(()=>{const b=$('#boot');b.style.opacity='0';setTimeout(()=>b.remove(),600);},1200);
+
+/* ================= 启动 ================= */
+renderDesktop();
+
+/* 调试 / 测试接口 */
+window.W98={state,analyzeWorries,openBin,openMine,openNotepad,createItem,renderDesktop,
+  _test(content){
+    const item={id:uid(),type:'txt',name:uniqueName('测试 文本文档.txt'),content,x:null,y:null};
+    state.items.push(item);
+    const groups=analyzeWorries(content);
+    const n=groups.size?importWorries(item,groups):0;
+    persist();renderDesktop();
+    return {worries:n,bin:state.bin.map(e=>e.name)};
+  }};
+</script>
+</body>
+</html>
